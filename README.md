@@ -5,6 +5,10 @@
 4. Comando "node server.js" na pasta backend
 5. Abrir index.html
 
+## Para desligar tudo:
+1. Comando "docker-compose down"
+2. ctrl + C no terminal
+
 Esta é uma lista de perguntas que os grupos devem saber responder sobre o projeto:
 1.	Qual o tema do projeto? Por que este tema foi escolhido? Quais outros temas foram considerados?
 

@@ -9,12 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ============================================
-// SQLITE (substituto do PostgreSQL) - SEM DOR DE CABEÇA!
-// ============================================
+// sqlite
 const db = new sqlite3.Database('./database.db');
 
-// Criar tabela automaticamente
 db.run(`
   CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,21 +21,18 @@ db.run(`
   )
 `);
 
-// Inserir dados de exemplo
+// dados de exemplo
 db.get("SELECT COUNT(*) as total FROM clientes", (err, row) => {
   if (!err && row.total === 0) {
     db.run("INSERT INTO clientes (nome, email) VALUES (?, ?)", 
       ['Cliente Demo', 'demo@email.com']
     );
-    console.log('✅ SQLite: Dados de exemplo inseridos');
   }
 });
 
-console.log('✅ SQLite: Banco de dados relacional pronto');
+console.log('SQLite OK');
 
-// ============================================
-// MONGODB
-// ============================================
+// mongodb
 const mongoClient = new MongoClient('mongodb://localhost:27017');
 let filmesCollection;
 
@@ -47,7 +41,7 @@ async function initMongoDB() {
     await mongoClient.connect();
     const db = mongoClient.db('avaliacao_filmes');
     filmesCollection = db.collection('filmes');
-    console.log('✅ MongoDB conectado!');
+    console.log('MongoDB OK');
     
     const count = await filmesCollection.countDocuments();
     if (count === 0) {
@@ -57,16 +51,13 @@ async function initMongoDB() {
         diretor: 'Diretor Demo',
         genero: 'Drama'
       });
-      console.log('✅ MongoDB: Dados de exemplo inseridos');
     }
   } catch (error) {
-    console.error('❌ MongoDB erro:', error.message);
+    console.error('MongoDB erro:', error.message);
   }
 }
 
-// ============================================
-// NEO4J
-// ============================================
+// neo4j
 const neo4jDriver = neo4j.driver(
   'bolt://localhost:7687',
   neo4j.auth.basic('neo4j', 'admin123')
@@ -75,15 +66,13 @@ const neo4jDriver = neo4j.driver(
 async function initNeo4j() {
   try {
     await neo4jDriver.verifyConnectivity();
-    console.log('✅ Neo4j conectado!');
+    console.log('Neo4j OK');
   } catch (error) {
-    console.error('❌ Neo4j erro:', error.message);
+    console.error('Neo4j erro:', error.message);
   }
 }
 
-// ============================================
-// ROTAS - CLIENTES (SQLite)
-// ============================================
+// rotas sqlite
 app.post('/api/clientes', (req, res) => {
   const { nome, email } = req.body;
   
@@ -107,15 +96,13 @@ app.get('/api/clientes', (req, res) => {
       console.error('Erro:', err.message);
       res.status(500).json([]);
     } else {
-      console.log(`📊 Retornando ${rows.length} clientes`);
+      console.log(`Retornando ${rows.length} clientes`);
       res.json(rows);
     }
   });
 });
 
-// ============================================
-// ROTAS - FILMES (MongoDB)
-// ============================================
+// rotas mongodb
 app.post('/api/filmes', async (req, res) => {
   const { titulo, ano, diretor, genero } = req.body;
   try {
@@ -131,16 +118,14 @@ app.post('/api/filmes', async (req, res) => {
 app.get('/api/filmes', async (req, res) => {
   try {
     const filmes = await filmesCollection.find({}).toArray();
-    console.log(`📊 Retornando ${filmes.length} filmes`);
+    console.log(`Retornando ${filmes.length} filmes`);
     res.json(filmes);
   } catch (error) {
     res.status(500).json([]);
   }
 });
 
-// ============================================
-// ROTAS - AVALIAÇÕES (Neo4j)
-// ============================================
+// rotas neo4j
 app.post('/api/avaliacoes', async (req, res) => {
   const { clienteId, filmeId, nota, comentario, recomendado } = req.body;
   const session = neo4jDriver.session();
@@ -210,20 +195,14 @@ app.get('/api/recomendacoes/:clienteId', async (req, res) => {
   }
 });
 
-// ============================================
-// INICIALIZAÇÃO
-// ============================================
+// init
 async function start() {
-  console.log('🚀 Iniciando backend...\n');
-  console.log('✅ SQLite (RDB) rodando');
+  console.log('SQLite OK');
   await initMongoDB();
   await initNeo4j();
   
   app.listen(3000, () => {
-    console.log('\n✅ Servidor rodando na porta 3000');
-    console.log('📍 http://localhost:3000');
-    console.log('\n📋 Teste rápido:');
-    console.log('   curl http://localhost:3000/api/clientes\n');
+    console.log('\nServidor na porta 3000');
   });
 }
 

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  neo4j:
+    image: neo4j:5
+    environment:
+      NEO4J_AUTH: neo4j/admin123
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  mongo_data:
+  neo4j_data:

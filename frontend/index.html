@@ -1,0 +1,182 @@
+<!-- frontend/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema de Avaliação de Filmes</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .section { 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        input, button { margin: 5px; padding: 8px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Avaliação de Filmes</h1>
+        
+        <!-- Clientes (PostgreSQL) -->
+        <div class="section">
+            <h2>👤 Clientes</h2>
+            <input type="text" id="clienteNome" placeholder="Nome">
+            <input type="email" id="clienteEmail" placeholder="Email">
+            <button onclick="criarCliente()">Cadastrar Cliente</button>
+            <button onclick="listarClientes()">Listar Clientes</button>
+            <div id="clientesLista"></div>
+        </div>
+
+        <!-- Filmes (MongoDB) -->
+        <div class="section">
+            <h2>🎬 Filmes</h2>
+            <input type="text" id="filmeTitulo" placeholder="Título">
+            <input type="text" id="filmeAno" placeholder="Ano">
+            <input type="text" id="filmeDiretor" placeholder="Diretor">
+            <input type="text" id="filmeGenero" placeholder="Gênero">
+            <button onclick="criarFilme()">Cadastrar Filme</button>
+            <button onclick="listarFilmes()">Listar Filmes</button>
+            <div id="filmesLista"></div>
+        </div>
+
+        <!-- Avaliações (Neo4j) -->
+        <div class="section">
+            <h2>⭐ Avaliações</h2>
+            <input type="text" id="avaliacaoClienteId" placeholder="ID do Cliente">
+            <input type="text" id="avaliacaoFilmeId" placeholder="ID do Filme">
+            <input type="number" id="avaliacaoNota" placeholder="Nota (0-10)">
+            <input type="text" id="avaliacaoComentario" placeholder="Comentário">
+            <label>
+                <input type="checkbox" id="avaliacaoRecomendado"> Recomendo
+            </label>
+            <button onclick="criarAvaliacao()">Avaliar Filme</button>
+            
+            <h3>Recomendações</h3>
+            <input type="text" id="recomendacaoClienteId" placeholder="ID do Cliente">
+            <button onclick="buscarRecomendacoes()">Ver Recomendações</button>
+            <div id="recomendacoesLista"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        async function criarCliente() {
+            const nome = document.getElementById('clienteNome').value;
+            const email = document.getElementById('clienteEmail').value;
+            
+            const response = await fetch(`${API_URL}/api/clientes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, email })
+            });
+            
+            if (response.ok) {
+                alert('Cliente criado com sucesso!');
+                listarClientes();
+            }
+        }
+
+        async function listarClientes() {
+        try {
+            const response = await fetch(`${API_URL}/api/clientes`);
+            
+            // Verifica se a resposta está ok
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Erro do servidor:', errorText);
+                document.getElementById('clientesLista').innerHTML = 
+                    `<p class="error">Erro ${response.status}: ${response.statusText}</p>`;
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('Dados recebidos:', data); // <-- IMPORTANTE: veja no console
+            
+            // Verifica se data é um array
+            if (!Array.isArray(data)) {
+                console.error('Recebido não é array:', data);
+                document.getElementById('clientesLista').innerHTML = 
+                    '<p class="error">Erro: Backend não retornou uma lista de clientes</p>';
+                return;
+            }
+            
+            if (data.length === 0) {
+                document.getElementById('clientesLista').innerHTML = 
+                    '<p>Nenhum cliente cadastrado ainda</p>';
+                return;
+            }
+            
+            const clientesHtml = '<h3>Clientes:</h3>' + data.map(c => 
+                `<p>${c.id} - ${c.nome} (${c.email})</p>`
+            ).join('');
+            
+            document.getElementById('clientesLista').innerHTML = clientesHtml;
+        } catch (error) {
+            console.error('Erro ao listar clientes:', error);
+            document.getElementById('clientesLista').innerHTML = 
+                `<p class="error">Erro de conexão: ${error.message}</p>`;
+        }
+}
+
+        async function criarFilme() {
+            const titulo = document.getElementById('filmeTitulo').value;
+            const ano = parseInt(document.getElementById('filmeAno').value);
+            const diretor = document.getElementById('filmeDiretor').value;
+            const genero = document.getElementById('filmeGenero').value;
+            
+            const response = await fetch(`${API_URL}/api/filmes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ titulo, ano, diretor, genero })
+            });
+            
+            if (response.ok) {
+                alert('Filme criado com sucesso!');
+                listarFilmes();
+            }
+        }
+
+        async function listarFilmes() {
+            const response = await fetch(`${API_URL}/api/filmes`);
+            const filmes = await response.json();
+            const div = document.getElementById('filmesLista');
+            div.innerHTML = '<h3>Filmes:</h3>' + filmes.map(f => 
+                `<p>${f._id} - ${f.titulo} (${f.ano}) - ${f.diretor}</p>`
+            ).join('');
+        }
+
+        async function criarAvaliacao() {
+            const clienteId = parseInt(document.getElementById('avaliacaoClienteId').value);
+            const filmeId = document.getElementById('avaliacaoFilmeId').value;
+            const nota = parseInt(document.getElementById('avaliacaoNota').value);
+            const comentario = document.getElementById('avaliacaoComentario').value;
+            const recomendado = document.getElementById('avaliacaoRecomendado').checked;
+            
+            const response = await fetch(`${API_URL}/api/avaliacoes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clienteId, filmeId, nota, comentario, recomendado })
+            });
+            
+            if (response.ok) {
+                alert('Avaliação registrada!');
+            }
+        }
+
+        async function buscarRecomendacoes() {
+            const clienteId = document.getElementById('recomendacaoClienteId').value;
+            const response = await fetch(`${API_URL}/api/recomendacoes/${clienteId}`);
+            const recomendacoes = await response.json();
+            const div = document.getElementById('recomendacoesLista');
+            div.innerHTML = '<h3>Recomendações:</h3>' + recomendacoes.map(r => 
+                `<p>${r.filme} - Nota: ${r.nota} - "${r.comentario}"</p>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>

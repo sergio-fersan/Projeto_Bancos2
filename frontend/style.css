@@ -1,0 +1,298 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Tela de Login */
+.login-container, .app-container {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 100px auto;
+}
+
+.login-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #666;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #5a67d8;
+}
+
+.toggle-form {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.toggle-form a {
+    color: #667eea;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.toggle-form a:hover {
+    text-decoration: underline;
+}
+
+.error {
+    color: #e53e3e;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.success {
+    color: #48bb78;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* App Container (depois do login) */
+.app-container {
+    display: none;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logout-btn {
+    background: #e53e3e;
+    width: auto;
+    padding: 8px 20px;
+    margin: 0;
+}
+
+.logout-btn:hover {
+    background: #c53030;
+}
+
+.section {
+    background: #f7fafc;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.section h2 {
+    margin-bottom: 15px;
+    color: #2d3748;
+    font-size: 1.5rem;
+}
+
+/* Grid de filmes */
+.filmes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.filme-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.filme-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.filme-card h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.filme-card p {
+    color: #4a5568;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+/* Formulário de avaliação */
+.avaliacao-form {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.avaliacao-form select,
+.avaliacao-form textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #cbd5e0;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.avaliacao-form select:focus,
+.avaliacao-form textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.avaliacao-form textarea {
+    height: 60px;
+    resize: vertical;
+}
+
+.avaliacao-form label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.avaliacao-btn {
+    background: #48bb78;
+    width: auto;
+    padding: 8px 15px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.avaliacao-btn:hover {
+    background: #38a169;
+}
+
+/* Minhas avaliações */
+.minhas-avaliacoes {
+    margin-top: 20px;
+}
+
+.avaliacao-item {
+    background: white;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    transition: transform 0.2s;
+}
+
+.avaliacao-item:hover {
+    transform: translateX(5px);
+}
+
+.avaliacao-item.recomendado {
+    border-left-color: #48bb78;
+}
+
+.avaliacao-item.nao-recomendado {
+    border-left-color: #e53e3e;
+}
+
+.avaliacao-item h3 {
+    color: #2d3748;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.avaliacao-item p {
+    color: #4a5568;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.avaliacao-item small {
+    color: #a0aec0;
+    font-size: 0.8rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .filmes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .user-info {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

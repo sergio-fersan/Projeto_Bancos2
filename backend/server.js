@@ -1,38 +1,97 @@
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb'); // ← ADICIONAR ObjectId AQUI!
 const neo4j = require('neo4j-driver');
-const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// sqlite
+// ============================================
+// SQLITE - Usuários (RDB)
+// ============================================
 const db = new sqlite3.Database('./database.db');
 
+// Criar tabela de usuários
 db.run(`
   CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
+    senha TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
 
-// dados de exemplo
+// Inserir usuário de exemplo se não existir
 db.get("SELECT COUNT(*) as total FROM clientes", (err, row) => {
   if (!err && row.total === 0) {
-    db.run("INSERT INTO clientes (nome, email) VALUES (?, ?)", 
-      ['Cliente Demo', 'demo@email.com']
+    db.run(
+      "INSERT INTO clientes (nome, email, senha) VALUES (?, ?, ?)",
+      ['Usuário Demo', 'demo@email.com', '123456']
     );
+    console.log('✅ SQLite: Usuário demo criado (email: demo@email.com, senha: 123456)');
   }
 });
 
-console.log('SQLite OK');
+// ============================================
+// ROTA DE LOGIN
+// ============================================
+app.post('/api/login', (req, res) => {
+  const { email, senha } = req.body;
+  
+  db.get(
+    'SELECT id, nome, email FROM clientes WHERE email = ? AND senha = ?',
+    [email, senha],
+    (err, user) => {
+      if (err) {
+        res.status(500).json({ error: 'Erro no servidor' });
+      } else if (user) {
+        res.json({ 
+          success: true, 
+          user: {
+            id: user.id,
+            nome: user.nome,
+            email: user.email
+          }
+        });
+      } else {
+        res.status(401).json({ error: 'Email ou senha inválidos' });
+      }
+    }
+  );
+});
 
-// mongodb
+// ============================================
+// ROTA DE CADASTRO
+// ============================================
+app.post('/api/cadastro', (req, res) => {
+  const { nome, email, senha } = req.body;
+  
+  db.run(
+    'INSERT INTO clientes (nome, email, senha) VALUES (?, ?, ?)',
+    [nome, email, senha],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE')) {
+          res.status(400).json({ error: 'Email já cadastrado' });
+        } else {
+          res.status(500).json({ error: err.message });
+        }
+      } else {
+        res.json({ 
+          success: true, 
+          user: { id: this.lastID, nome, email }
+        });
+      }
+    }
+  );
+});
+
+// ============================================
+// MONGODB - Filmes
+// ============================================
 const mongoClient = new MongoClient('mongodb://localhost:27017');
 let filmesCollection;
 
@@ -41,68 +100,25 @@ async function initMongoDB() {
     await mongoClient.connect();
     const db = mongoClient.db('avaliacao_filmes');
     filmesCollection = db.collection('filmes');
-    console.log('MongoDB OK');
+    console.log('✅ MongoDB conectado!');
     
     const count = await filmesCollection.countDocuments();
     if (count === 0) {
-      await filmesCollection.insertOne({
-        titulo: 'Filme Demo',
-        ano: 2024,
-        diretor: 'Diretor Demo',
-        genero: 'Drama'
-      });
+      await filmesCollection.insertMany([
+        { titulo: 'O Poderoso Chefão', ano: 1972, diretor: 'Francis Ford Coppola', genero: 'Drama' },
+        { titulo: 'Interestelar', ano: 2014, diretor: 'Christopher Nolan', genero: 'Ficção' },
+        { titulo: 'Toy Story', ano: 1995, diretor: 'John Lasseter', genero: 'Animação' },
+        { titulo: 'Matrix', ano: 1999, diretor: 'Lana Wachowski', genero: 'Ficção' },
+        { titulo: 'Forrest Gump', ano: 1994, diretor: 'Robert Zemeckis', genero: 'Drama' }
+      ]);
+      console.log('✅ MongoDB: Filmes de exemplo inseridos');
     }
   } catch (error) {
-    console.error('MongoDB erro:', error.message);
+    console.error('❌ MongoDB erro:', error.message);
   }
 }
 
-// neo4j
-const neo4jDriver = neo4j.driver(
-  'bolt://localhost:7687',
-  neo4j.auth.basic('neo4j', 'admin123')
-);
-
-async function initNeo4j() {
-  try {
-    await neo4jDriver.verifyConnectivity();
-    console.log('Neo4j OK');
-  } catch (error) {
-    console.error('Neo4j erro:', error.message);
-  }
-}
-
-// rotas sqlite
-app.post('/api/clientes', (req, res) => {
-  const { nome, email } = req.body;
-  
-  db.run(
-    'INSERT INTO clientes (nome, email) VALUES (?, ?)',
-    [nome, email],
-    function(err) {
-      if (err) {
-        console.error('Erro:', err.message);
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json({ id: this.lastID, nome, email });
-      }
-    }
-  );
-});
-
-app.get('/api/clientes', (req, res) => {
-  db.all('SELECT * FROM clientes ORDER BY id', (err, rows) => {
-    if (err) {
-      console.error('Erro:', err.message);
-      res.status(500).json([]);
-    } else {
-      console.log(`Retornando ${rows.length} clientes`);
-      res.json(rows);
-    }
-  });
-});
-
-// rotas mongodb
+// ROTAS DE FILMES
 app.post('/api/filmes', async (req, res) => {
   const { titulo, ano, diretor, genero } = req.body;
   try {
@@ -118,74 +134,104 @@ app.post('/api/filmes', async (req, res) => {
 app.get('/api/filmes', async (req, res) => {
   try {
     const filmes = await filmesCollection.find({}).toArray();
-    console.log(`Retornando ${filmes.length} filmes`);
     res.json(filmes);
   } catch (error) {
     res.status(500).json([]);
   }
 });
 
-// rotas neo4j
+// ============================================
+// NEO4J - Avaliações
+// ============================================
+const neo4jDriver = neo4j.driver(
+  'bolt://localhost:7687',
+  neo4j.auth.basic('neo4j', 'admin123')
+);
+
+async function initNeo4j() {
+  try {
+    await neo4jDriver.verifyConnectivity();
+    console.log('✅ Neo4j conectado!');
+  } catch (error) {
+    console.error('❌ Neo4j erro:', error.message);
+  }
+}
+
+// Criar avaliação (CORRIGIDO)
 app.post('/api/avaliacoes', async (req, res) => {
-  const { clienteId, filmeId, nota, comentario, recomendado } = req.body;
+  const { userId, filmeId, nota, comentario, recomendado } = req.body;
   const session = neo4jDriver.session();
   
   try {
-    // Pega o nome do cliente do SQLite
-    const cliente = await new Promise((resolve, reject) => {
-      db.get('SELECT nome FROM clientes WHERE id = ?', [clienteId], (err, row) => {
+    // Buscar nome do usuário no SQLite
+    const user = await new Promise((resolve, reject) => {
+      db.get('SELECT nome FROM clientes WHERE id = ?', [userId], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
     });
     
-    if (!cliente) {
-      return res.status(404).json({ error: 'Cliente não encontrado' });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
+    // Buscar título do filme no MongoDB - CORRIGIDO AQUI!
+    const filme = await filmesCollection.findOne({ _id: new ObjectId(filmeId) }); // ← USAR ObjectId assim
+    
+    if (!filme) {
+      return res.status(404).json({ error: 'Filme não encontrado' });
+    }
+    
+    // Criar relação no Neo4j
     await session.run(
-      `MERGE (c:Cliente {id: $clienteId, nome: $nome})
-       MERGE (f:Filme {id: $filmeId})
-       CREATE (c)-[r:AVALIOU {
-         nota: $nota, 
-         comentario: $comentario, 
-         recomendado: $recomendado, 
+      `MERGE (u:Usuario {id: $userId, nome: $nome})
+       MERGE (f:Filme {id: $filmeId, titulo: $titulo})
+       CREATE (u)-[r:AVALIOU {
+         nota: $nota,
+         comentario: $comentario,
+         recomendado: $recomendado,
          data: datetime()
        }]->(f)`,
-      { 
-        clienteId: clienteId.toString(), 
-        nome: cliente.nome,
-        filmeId: filmeId.toString(), 
-        nota: parseInt(nota), 
-        comentario, 
+      {
+        userId: userId.toString(),
+        nome: user.nome,
+        filmeId: filmeId.toString(),
+        titulo: filme.titulo,
+        nota: parseInt(nota),
+        comentario,
         recomendado: Boolean(recomendado)
       }
     );
     res.json({ success: true });
   } catch (error) {
-    console.error('Erro:', error.message);
+    console.error('Erro detalhado:', error);
     res.status(500).json({ error: error.message });
   } finally {
     await session.close();
   }
 });
 
-app.get('/api/recomendacoes/:clienteId', async (req, res) => {
-  const { clienteId } = req.params;
+// Buscar avaliações do usuário logado
+app.get('/api/minhas-avaliacoes/:userId', async (req, res) => {
+  const { userId } = req.params;
   const session = neo4jDriver.session();
   
   try {
     const result = await session.run(
-      `MATCH (c:Cliente {id: $clienteId})-[r:AVALIOU]->(f:Filme)
-       WHERE r.recomendado = true
-       RETURN f.id AS filmeId, r.nota AS nota, r.comentario AS comentario
+      `MATCH (u:Usuario {id: $userId})-[r:AVALIOU]->(f:Filme)
+       RETURN f.id AS filmeId, f.titulo AS titulo, 
+              r.nota AS nota, r.comentario AS comentario, 
+              r.recomendado AS recomendado, r.data AS data
        ORDER BY r.data DESC`,
-      { clienteId: clienteId.toString() }
+      { userId: userId.toString() }
     );
     res.json(result.records.map(r => ({
       filmeId: r.get('filmeId'),
+      titulo: r.get('titulo'),
       nota: r.get('nota'),
-      comentario: r.get('comentario')
+      comentario: r.get('comentario'),
+      recomendado: r.get('recomendado'),
+      data: r.get('data')
     })));
   } catch (error) {
     console.error('Erro:', error.message);
@@ -195,13 +241,35 @@ app.get('/api/recomendacoes/:clienteId', async (req, res) => {
   }
 });
 
-// init
+// Rota para ver todos os clientes (admin)
+app.get('/api/clientes', (req, res) => {
+  db.all('SELECT id, nome, email FROM clientes ORDER BY id', (err, rows) => {
+    if (err) {
+      res.status(500).json([]);
+    } else {
+      res.json(rows);
+    }
+  });
+});
+
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
 async function start() {
+  console.log('🚀 Iniciando backend...\n');
+  console.log('✅ SQLite (RDB) rodando');
   await initMongoDB();
   await initNeo4j();
   
   app.listen(3000, () => {
-    console.log('\nServidor na porta 3000');
+    console.log('\n✅ Servidor rodando na porta 3000');
+    console.log('📝 Credenciais de teste: demo@email.com / 123456');
+    console.log('\n🎬 Endpoints disponíveis:');
+    console.log('   POST /api/login');
+    console.log('   POST /api/cadastro');
+    console.log('   GET  /api/filmes');
+    console.log('   POST /api/avaliacoes');
+    console.log('   GET  /api/minhas-avaliacoes/:userId\n');
   });
 }
 

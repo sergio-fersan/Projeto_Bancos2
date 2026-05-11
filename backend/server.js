@@ -197,7 +197,6 @@ app.get('/api/recomendacoes/:clienteId', async (req, res) => {
 
 // init
 async function start() {
-  console.log('SQLite OK');
   await initMongoDB();
   await initNeo4j();
   

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Avaliação de Filmes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-container">
+            <h2>🎬 Bem-vindo de volta!</h2>
+            <p class="subtitle">Faça login para continuar</p>
+            
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>📧 Email</label>
+                    <input type="email" id="loginEmail" placeholder="demo@email.com" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>🔒 Senha</label>
+                    <input type="password" id="loginSenha" placeholder="********">
+                </div>
+                <button onclick="window.fazerLogin()">Entrar</button>
+                <div class="toggle-form">
+                    <a href="cadastro.html">Não tem conta? Cadastre-se</a>
+                </div>
+                <div id="loginMessage"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Avaliação de Filmes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="app-container">
+            <div class="header">
+                <div>
+                    <h1>🎬 Avaliação de Filmes</h1>
+                    <p class="welcome-text">Olá, <span id="userName"></span>!</p>
+                </div>
+                <div class="user-info">
+                    <button class="logout-btn" onclick="window.fazerLogout()">Sair</button>
+                </div>
+            </div>
+            
+            <!-- Estatísticas rápidas -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">🎥</div>
+                    <div class="stat-info">
+                        <h3 id="totalFilmes">0</h3>
+                        <p>Filmes disponíveis</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-info">
+                        <h3 id="totalAvaliacoes">0</h3>
+                        <p>Suas avaliações</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👍</div>
+                    <div class="stat-info">
+                        <h3 id="totalRecomendados">0</h3>
+                        <p>Filmes recomendados</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de Filmes para avaliar -->
+            <div class="section">
+                <h2>🎥 Catálogo de Filmes</h2>
+                <div id="filmesLista" class="filmes-grid"></div>
+            </div>
+            
+            <!-- Minhas Avaliações -->
+            <div class="section">
+                <h2>⭐ Minhas Avaliações</h2>
+                <div id="minhasAvaliacoes" class="minhas-avaliacoes"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -6,18 +6,14 @@ let usuarioAtual = null;
 // FUNÇÕES DE LOGIN/CADASTRO
 // ============================================
 
-// Carregar usuário do localStorage ao iniciar
-window.onload = () => {
-    const savedUser = localStorage.getItem('usuario');
-    if (savedUser) {
-        usuarioAtual = JSON.parse(savedUser);
-        entrarNoApp();
-    }
-};
-
 async function fazerLogin() {
     const email = document.getElementById('loginEmail').value;
     const senha = document.getElementById('loginSenha').value;
+    
+    if (!email || !senha) {
+        mostrarMensagem('loginMessage', 'Preencha todos os campos', 'error');
+        return;
+    }
     
     try {
         const response = await fetch(`${API_URL}/api/login`, {
@@ -31,14 +27,12 @@ async function fazerLogin() {
         if (response.ok) {
             usuarioAtual = data.user;
             localStorage.setItem('usuario', JSON.stringify(usuarioAtual));
-            entrarNoApp();
+            window.location.href = 'dashboard.html';
         } else {
-            document.getElementById('loginMessage').innerHTML = 
-                `<div class="error">${data.error}</div>`;
+            mostrarMensagem('loginMessage', data.error, 'error');
         }
     } catch (error) {
-        document.getElementById('loginMessage').innerHTML = 
-            `<div class="error">Erro de conexão com o servidor</div>`;
+        mostrarMensagem('loginMessage', 'Erro de conexão com o servidor', 'error');
     }
 }
 
@@ -46,6 +40,22 @@ async function fazerCadastro() {
     const nome = document.getElementById('cadastroNome').value;
     const email = document.getElementById('cadastroEmail').value;
     const senha = document.getElementById('cadastroSenha').value;
+    const confirmarSenha = document.getElementById('cadastroConfirmarSenha').value;
+    
+    if (!nome || !email || !senha) {
+        mostrarMensagem('cadastroMessage', 'Preencha todos os campos', 'error');
+        return;
+    }
+    
+    if (senha !== confirmarSenha) {
+        mostrarMensagem('cadastroMessage', 'As senhas não coincidem', 'error');
+        return;
+    }
+    
+    if (senha.length < 4) {
+        mostrarMensagem('cadastroMessage', 'A senha deve ter pelo menos 4 caracteres', 'error');
+        return;
+    }
     
     try {
         const response = await fetch(`${API_URL}/api/cadastro`, {
@@ -57,49 +67,50 @@ async function fazerCadastro() {
         const data = await response.json();
         
         if (response.ok) {
-            document.getElementById('cadastroMessage').innerHTML = 
-                '<div class="success">✅ Cadastro realizado! Faça login.</div>';
-            setTimeout(() => mostrarLogin(), 1500);
+            mostrarMensagem('cadastroMessage', '✅ Cadastro realizado! Redirecionando...', 'success');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
         } else {
-            document.getElementById('cadastroMessage').innerHTML = 
-                `<div class="error">${data.error}</div>`;
+            mostrarMensagem('cadastroMessage', data.error, 'error');
         }
     } catch (error) {
-        document.getElementById('cadastroMessage').innerHTML = 
-            '<div class="error">Erro de conexão com o servidor</div>';
+        mostrarMensagem('cadastroMessage', 'Erro de conexão com o servidor', 'error');
     }
 }
 
-function mostrarCadastro() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('cadastroForm').style.display = 'block';
-    document.getElementById('loginMessage').innerHTML = '';
-    document.getElementById('cadastroMessage').innerHTML = '';
-}
-
-function mostrarLogin() {
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('cadastroForm').style.display = 'none';
-    document.getElementById('loginMessage').innerHTML = '';
-    document.getElementById('cadastroMessage').innerHTML = '';
-}
-
 function fazerLogout() {
-    usuarioAtual = null;
     localStorage.removeItem('usuario');
-    document.getElementById('loginContainer').style.display = 'block';
-    document.getElementById('appContainer').style.display = 'none';
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginSenha').value = '';
+    window.location.href = 'login.html';
+}
+
+function mostrarMensagem(elementId, mensagem, tipo) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = `<div class="${tipo}">${mensagem}</div>`;
+        setTimeout(() => {
+            element.innerHTML = '';
+        }, 3000);
+    }
 }
 
 // ============================================
-// FUNÇÕES DO APP PRINCIPAL
+// FUNÇÕES DO DASHBOARD
 // ============================================
 
-async function entrarNoApp() {
-    document.getElementById('loginContainer').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'block';
+function verificarAutenticacao() {
+    const usuario = localStorage.getItem('usuario');
+    if (!usuario) {
+        window.location.href = 'login.html';
+        return false;
+    }
+    usuarioAtual = JSON.parse(usuario);
+    return true;
+}
+
+async function carregarDashboard() {
+    if (!verificarAutenticacao()) return;
+    
     document.getElementById('userName').innerHTML = usuarioAtual.nome;
     
     await carregarFilmes();
@@ -111,7 +122,16 @@ async function carregarFilmes() {
         const response = await fetch(`${API_URL}/api/filmes`);
         const filmes = await response.json();
         
+        document.getElementById('totalFilmes').innerHTML = filmes.length;
+        
         const filmesDiv = document.getElementById('filmesLista');
+        if (!filmesDiv) return;
+        
+        if (filmes.length === 0) {
+            filmesDiv.innerHTML = '<p class="loading-container">Nenhum filme disponível no momento.</p>';
+            return;
+        }
+        
         filmesDiv.innerHTML = filmes.map(filme => `
             <div class="filme-card">
                 <h3>${filme.titulo}</h3>
@@ -144,6 +164,10 @@ async function carregarFilmes() {
         `).join('');
     } catch (error) {
         console.error('Erro ao carregar filmes:', error);
+        const filmesDiv = document.getElementById('filmesLista');
+        if (filmesDiv) {
+            filmesDiv.innerHTML = '<p class="error">Erro ao carregar filmes. Verifique se o backend está rodando.</p>';
+        }
     }
 }
 
@@ -184,10 +208,15 @@ async function carregarMinhasAvaliacoes() {
         const response = await fetch(`${API_URL}/api/minhas-avaliacoes/${usuarioAtual.id}`);
         const avaliacoes = await response.json();
         
+        document.getElementById('totalAvaliacoes').innerHTML = avaliacoes.length;
+        const recomendados = avaliacoes.filter(a => a.recomendado).length;
+        document.getElementById('totalRecomendados').innerHTML = recomendados;
+        
         const avaliacoesDiv = document.getElementById('minhasAvaliacoes');
+        if (!avaliacoesDiv) return;
         
         if (avaliacoes.length === 0) {
-            avaliacoesDiv.innerHTML = '<p>📭 Você ainda não avaliou nenhum filme.</p>';
+            avaliacoesDiv.innerHTML = '<p>📭 Você ainda não avaliou nenhum filme. Comece agora mesmo!</p>';
             return;
         }
         
@@ -205,10 +234,23 @@ async function carregarMinhasAvaliacoes() {
     }
 }
 
-// Exportar funções para o escopo global (para funcionar com onclick no HTML)
+// ============================================
+// INICIALIZAÇÃO POR PÁGINA
+// ============================================
+
+// Detectar qual página está carregando e inicializar
+document.addEventListener('DOMContentLoaded', () => {
+    const path = window.location.pathname;
+    const page = path.split('/').pop();
+    
+    if (page === 'dashboard.html') {
+        carregarDashboard();
+    }
+    // Não faz verificação automática em login.html e cadastro.html
+});
+
+// Exportar funções para o escopo global
 window.fazerLogin = fazerLogin;
 window.fazerCadastro = fazerCadastro;
-window.mostrarLogin = mostrarLogin;
-window.mostrarCadastro = mostrarCadastro;
 window.fazerLogout = fazerLogout;
 window.avaliarFilme = avaliarFilme;

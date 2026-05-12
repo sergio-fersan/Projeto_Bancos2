@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sistema de Avaliação de Filmes</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>👑 Painel do Administrador</h1>
+            <div class="header-buttons">
+                <a href="index.html" class="btn-home">🏠 Home</a>
+                <button onclick="window.location.reload()" class="btn-refresh">🔄 Atualizar</button>
+            </div>
+        </div>
+        
+        <div class="stats-banner">
+            <div class="stat-box">
+                <div class="stat-number" id="totalClientes">0</div>
+                <div class="stat-label">Clientes Cadastrados</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalFilmes">0</div>
+                <div class="stat-label">Filmes no Catálogo</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalAvaliacoes">0</div>
+                <div class="stat-label">Avaliações Realizadas</div>
+            </div>
+        </div>
+        
+        <div class="admin-grid">
+            <!-- Seção de Clientes (SQLite) -->
+            <div class="admin-card">
+                <div class="card-header">
+                    <h2>👥 Gerenciar Clientes</h2>
+                    <span class="badge">SQLite (RDB)</span>
+                </div>
+                
+                <div class="card-body">
+                    <div class="form-crud">
+                        <h3>➕ Adicionar Cliente</h3>
+                        <input type="text" id="adminClienteNome" placeholder="Nome completo">
+                        <input type="email" id="adminClienteEmail" placeholder="Email">
+                        <input type="password" id="adminClienteSenha" placeholder="Senha">
+                        <button onclick="adminCriarCliente()" class="btn-add">Adicionar Cliente</button>
+                    </div>
+                    
+                    <div class="list-container">
+                        <h3>📋 Lista de Clientes</h3>
+                        <div id="adminClientesLista" class="items-list"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Seção de Filmes (MongoDB) -->
+            <div class="admin-card">
+                <div class="card-header">
+                    <h2>🎬 Gerenciar Filmes</h2>
+                    <span class="badge">MongoDB (Document Store)</span>
+                </div>
+                
+                <div class="card-body">
+                    <div class="form-crud">
+                        <h3>➕ Adicionar Filme</h3>
+                        <input type="text" id="adminFilmeTitulo" placeholder="Título do filme">
+                        <input type="number" id="adminFilmeAno" placeholder="Ano">
+                        <input type="text" id="adminFilmeDiretor" placeholder="Diretor">
+                        <input type="text" id="adminFilmeGenero" placeholder="Gênero">
+                        <button onclick="adminCriarFilme()" class="btn-add">Adicionar Filme</button>
+                    </div>
+                    
+                    <div class="list-container">
+                        <h3>📋 Lista de Filmes</h3>
+                        <div id="adminFilmesLista" class="items-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

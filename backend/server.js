@@ -253,6 +253,111 @@ app.get('/api/clientes', (req, res) => {
 });
 
 // ============================================
+// ROTAS ADMIN - CLIENTES (SQLite)
+// ============================================
+
+// Atualizar cliente
+app.put('/api/clientes/:id', (req, res) => {
+    const { id } = req.params;
+    const { nome, email } = req.body;
+    
+    db.run(
+        'UPDATE clientes SET nome = ?, email = ? WHERE id = ?',
+        [nome, email, id],
+        function(err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Cliente não encontrado' });
+            } else {
+                res.json({ success: true });
+            }
+        }
+    );
+});
+
+// Deletar cliente (e suas avaliações no Neo4j)
+app.delete('/api/clientes/:id', async (req, res) => {
+    const { id } = req.params;
+    const session = neo4jDriver.session();
+    
+    try {
+        // Deletar relações no Neo4j
+        await session.run(
+            'MATCH (c:Usuario {id: $id}) DETACH DELETE c',
+            { id: id.toString() }
+        );
+        
+        // Deletar do SQLite
+        db.run('DELETE FROM clientes WHERE id = ?', [id], function(err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Cliente não encontrado' });
+            } else {
+                res.json({ success: true });
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        await session.close();
+    }
+});
+
+// ============================================
+// ROTAS ADMIN - FILMES (MongoDB)
+// ============================================
+
+// Atualizar filme
+app.put('/api/filmes/:id', async (req, res) => {
+    const { id } = req.params;
+    const { titulo, ano, diretor, genero } = req.body;
+    
+    try {
+        const result = await filmesCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: { titulo, ano, diretor, genero, updatedAt: new Date() } }
+        );
+        
+        if (result.matchedCount === 0) {
+            res.status(404).json({ error: 'Filme não encontrado' });
+        } else {
+            res.json({ success: true });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Deletar filme (e suas avaliações no Neo4j)
+app.delete('/api/filmes/:id', async (req, res) => {
+    const { id } = req.params;
+    const session = neo4jDriver.session();
+    
+    try {
+        // Deletar relações no Neo4j
+        await session.run(
+            'MATCH (f:Filme {id: $id}) DETACH DELETE f',
+            { id }
+        );
+        
+        // Deletar do MongoDB
+        const result = await filmesCollection.deleteOne({ _id: new ObjectId(id) });
+        
+        if (result.deletedCount === 0) {
+            res.status(404).json({ error: 'Filme não encontrado' });
+        } else {
+            res.json({ success: true });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        await session.close();
+    }
+});
+
+// ============================================
 // INICIALIZAÇÃO
 // ============================================
 async function start() {

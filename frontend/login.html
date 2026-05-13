@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Avaliação de Filmes</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
     <div class="container">
         <div class="login-container">
-            <h2>🎬 Bem-vindo de volta!</h2>
-            <p class="subtitle">Faça login para continuar</p>
+            <h1>🎬 Bem-vindo de volta!</h1>
+            <h2 class="subtitle">Faça login para continuar</h2>
             
             <div id="loginForm">
                 <div class="form-group">
@@ -21,8 +21,8 @@
                     <label>🔒 Senha</label>
                     <input type="password" id="loginSenha" placeholder="********">
                 </div>
-                <button onclick="window.fazerLogin()">Entrar</button>
-                <div class="toggle-form">
+                <button class="btn" onclick="window.fazerLogin()">Entrar</button>
+                <div class="link">
                     <a href="cadastro.html">Não tem conta? Cadastre-se</a>
                 </div>
                 <div id="loginMessage"></div>

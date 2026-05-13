@@ -4,101 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Avaliação de Filmes</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 20px;
-        }
-        .buttons-container {
-            text-align: center;
-            background: white;
-            padding: 50px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 500px;
-            width: 100%;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2rem;
-        }
-        .subtitle {
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 1rem;
-        }
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .btn {
-            display: block;
-            padding: 15px 30px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            transition: all 0.3s;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .btn-user {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-        .btn-admin {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-            margin-top: 10px;
-        }
-        .divider {
-            margin: 20px 0;
-            position: relative;
-            text-align: center;
-        }
-        .divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #ddd;
-        }
-        .divider span {
-            background: white;
-            padding: 0 15px;
-            position: relative;
-            color: #999;
-            font-size: 0.9rem;
-        }
-    </style>
+    <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
     <div class="buttons-container">
         <h1>🎬 Sistema de Avaliação de Filmes</h1>
-        <p class="subtitle">Polyglot Persistence Demo</p>
         
         <div class="btn-group">
             <a href="login.html" class="btn btn-user">👤 Área do Usuário</a>
-            
-            <div class="divider">
+
                 <span>ou</span>
-            </div>
             
             <a href="admin.html" class="btn btn-admin">👑 Painel do Administrador</a>
-            <p style="font-size: 12px; color: #999; margin-top: 15px;">
-                ⚠️ Modo demonstrativo - Sem autenticação
+            <p class="avisoAdm">
+                Painel do administrador apenas para demonstração
             </p>
         </div>
     </div>

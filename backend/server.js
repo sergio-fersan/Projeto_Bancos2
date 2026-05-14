@@ -158,57 +158,90 @@ async function initNeo4j() {
 }
 
 // Criar avaliação (CORRIGIDO)
+// Criar ou atualizar avaliação (UPSERT)
 app.post('/api/avaliacoes', async (req, res) => {
-  const { userId, filmeId, nota, comentario, recomendado } = req.body;
-  const session = neo4jDriver.session();
-  
-  try {
-    // Buscar nome do usuário no SQLite
-    const user = await new Promise((resolve, reject) => {
-      db.get('SELECT nome FROM clientes WHERE id = ?', [userId], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    const { userId, filmeId, nota, comentario, recomendado } = req.body;
+    const session = neo4jDriver.session();
     
-    if (!user) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+    try {
+        // Buscar nome do usuário no SQLite
+        const user = await new Promise((resolve, reject) => {
+            db.get('SELECT nome FROM clientes WHERE id = ?', [userId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+        
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        
+        // Buscar título do filme no MongoDB
+        const filme = await filmesCollection.findOne({ _id: new ObjectId(filmeId) });
+        
+        if (!filme) {
+            return res.status(404).json({ error: 'Filme não encontrado' });
+        }
+        
+        // Verificar se já existe uma avaliação
+        const checkResult = await session.run(
+            `MATCH (u:Usuario {id: $userId})-[r:AVALIOU]->(f:Filme {id: $filmeId})
+             RETURN r`,
+            {
+                userId: userId.toString(),
+                filmeId: filmeId.toString()
+            }
+        );
+        
+        if (checkResult.records.length > 0) {
+            // Já existe avaliação - fazer UPDATE
+            await session.run(
+                `MATCH (u:Usuario {id: $userId})-[r:AVALIOU]->(f:Filme {id: $filmeId})
+                 SET r.nota = $nota,
+                     r.comentario = $comentario,
+                     r.recomendado = $recomendado,
+                     r.data = datetime(),
+                     r.atualizado = true
+                 RETURN r`,
+                {
+                    userId: userId.toString(),
+                    filmeId: filmeId.toString(),
+                    nota: parseInt(nota),
+                    comentario,
+                    recomendado: Boolean(recomendado)
+                }
+            );
+            res.json({ success: true, updated: true });
+        } else {
+            // Não existe - criar nova avaliação
+            await session.run(
+                `MERGE (u:Usuario {id: $userId, nome: $nome})
+                 MERGE (f:Filme {id: $filmeId, titulo: $titulo})
+                 CREATE (u)-[r:AVALIOU {
+                     nota: $nota,
+                     comentario: $comentario,
+                     recomendado: $recomendado,
+                     data: datetime(),
+                     atualizado: false
+                 }]->(f)`,
+                {
+                    userId: userId.toString(),
+                    nome: user.nome,
+                    filmeId: filmeId.toString(),
+                    titulo: filme.titulo,
+                    nota: parseInt(nota),
+                    comentario,
+                    recomendado: Boolean(recomendado)
+                }
+            );
+            res.json({ success: true, updated: false });
+        }
+    } catch (error) {
+        console.error('Erro detalhado:', error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        await session.close();
     }
-    
-    // Buscar título do filme no MongoDB - CORRIGIDO AQUI!
-    const filme = await filmesCollection.findOne({ _id: new ObjectId(filmeId) }); // ← USAR ObjectId assim
-    
-    if (!filme) {
-      return res.status(404).json({ error: 'Filme não encontrado' });
-    }
-    
-    // Criar relação no Neo4j
-    await session.run(
-      `MERGE (u:Usuario {id: $userId, nome: $nome})
-       MERGE (f:Filme {id: $filmeId, titulo: $titulo})
-       CREATE (u)-[r:AVALIOU {
-         nota: $nota,
-         comentario: $comentario,
-         recomendado: $recomendado,
-         data: datetime()
-       }]->(f)`,
-      {
-        userId: userId.toString(),
-        nome: user.nome,
-        filmeId: filmeId.toString(),
-        titulo: filme.titulo,
-        nota: parseInt(nota),
-        comentario,
-        recomendado: Boolean(recomendado)
-      }
-    );
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro detalhado:', error);
-    res.status(500).json({ error: error.message });
-  } finally {
-    await session.close();
-  }
 });
 
 // Buscar avaliações do usuário logado
@@ -351,6 +384,31 @@ app.delete('/api/filmes/:id', async (req, res) => {
             res.json({ success: true });
         }
     } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        await session.close();
+    }
+});
+
+// ============================================
+// ROTA PARA ESTATÍSTICAS (Admin)
+// ============================================
+
+app.get('/api/estatisticas', async (req, res) => {
+    const session = neo4jDriver.session();
+    
+    try {
+        // Contar total de avaliações no Neo4j
+        const result = await session.run(
+            `MATCH (:Usuario)-[r:AVALIOU]->(:Filme)
+             RETURN COUNT(r) as total`
+        );
+        
+        const totalAvaliacoes = result.records[0].get('total').toNumber();
+        
+        res.json({ totalAvaliacoes });
+    } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
         res.status(500).json({ error: error.message });
     } finally {
         await session.close();

@@ -274,11 +274,14 @@ async function adminDeletarFilme(id) {
 
 async function adminCarregarEstatisticas() {
     try {
-        // Já temos total de clientes e filmes
-        // Para avaliações, teríamos que fazer uma chamada específica
-        document.getElementById('totalAvaliacoes').innerHTML = '?';
+        // Buscar total de avaliações
+        const response = await fetch(`${API_URL}/api/estatisticas`);
+        const data = await response.json();
+        
+        document.getElementById('totalAvaliacoes').innerHTML = data.totalAvaliacoes || 0;
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
+        document.getElementById('totalAvaliacoes').innerHTML = '0';
     }
 }
 

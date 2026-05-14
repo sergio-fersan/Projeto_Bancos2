@@ -187,14 +187,19 @@ async function avaliarFilme(filmeId, titulo) {
             })
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
-            alert(`✅ "${titulo}" avaliado com sucesso!`);
+            if (data.updated) {
+                alert(`✏️ "${titulo}" foi atualizado com sucesso!`);
+            } else {
+                alert(`✅ "${titulo}" avaliado com sucesso!`);
+            }
             document.getElementById(`comentario-${filmeId}`).value = '';
             document.getElementById(`recomendo-${filmeId}`).checked = false;
             await carregarMinhasAvaliacoes();
         } else {
-            const error = await response.json();
-            alert(`❌ Erro: ${error.error}`);
+            alert(`❌ Erro: ${data.error}`);
         }
     } catch (error) {
         alert('❌ Erro de conexão com o servidor');

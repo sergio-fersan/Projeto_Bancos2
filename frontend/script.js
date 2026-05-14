@@ -122,8 +122,6 @@ async function carregarFilmes() {
         const response = await fetch(`${API_URL}/api/filmes`);
         const filmes = await response.json();
         
-        document.getElementById('totalFilmes').innerHTML = filmes.length;
-        
         const filmesDiv = document.getElementById('filmesLista');
         if (!filmesDiv) return;
         

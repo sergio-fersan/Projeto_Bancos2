@@ -108,6 +108,106 @@ function verificarAutenticacao() {
     return true;
 }
 
+
+// ============================================
+// RECOMENDAÇÕES PERSONALIZADAS
+// ============================================
+
+async function carregarRecomendacoes() {
+    const recomendacoesDiv = document.getElementById('recomendacoesLista');
+    if (!recomendacoesDiv) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/api/recomendacoes/similares/${usuarioAtual.id}`);
+        const data = await response.json();
+        
+        // Filtrar recomendações inválidas
+        const recomendacoesValidas = (data.recomendacoes || []).filter(filme => {
+            return filme && 
+                   filme.titulo && 
+                   filme.titulo !== 'null' && 
+                   filme.titulo !== 'undefined' &&
+                   filme.titulo.trim() !== '';
+        });
+        
+        if (recomendacoesValidas.length === 0) {
+            recomendacoesDiv.innerHTML = `
+                <div class="sem-recomendacoes">
+                    <div class="emoji">🎬</div>
+                    <h3>Sem recomendações ainda</h3>
+                    <p>${data.message || 'Avalie mais filmes para receber recomendações personalizadas!'}</p>
+                    <small>💡 Quanto mais você avalia, melhores ficam as recomendações</small>
+                </div>
+            `;
+            return;
+        }
+        
+        const tipoTexto = data.tipo === 'personalizado' ? 'personalizado' : 'populares';
+        const tipoBadge = data.tipo === 'personalizado' ? 
+            '<span class="tipo-recomendacao tipo-personalizado">🎯 Baseado em seus gostos</span>' :
+            '<span class="tipo-recomendacao tipo-popular">🔥 Mais recomendados do catálogo</span>';
+        
+        recomendacoesDiv.innerHTML = `
+            <div style="margin-bottom: 15px;">
+                ${tipoBadge}
+            </div>
+            <div class="recomendacoes-grid">
+                ${recomendacoesValidas.map(filme => `
+                    <div class="recomendacao-card" onclick="scrollParaFilme('${filme.filmeId}')">
+                        <div class="recomendacao-header">
+                            <h3>${filme.titulo}</h3>
+                            <span class="recomendacao-nota">⭐ ${filme.mediaNota}/10</span>
+                        </div>
+                        <div class="recomendacao-body">
+                            <div class="recomendacao-motivo">
+                                ${filme.motivo || '👍 Recomendado por usuários similares'}
+                            </div>
+                            <div class="recomendacao-detalhes">
+                                <small>✨ Clique para avaliar este filme</small>
+                            </div>
+                            <button class="btn-avaliar-recomendacao" onclick="event.stopPropagation(); scrollParaFilme('${filme.filmeId}')">
+                                📝 Avaliar este filme
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Erro ao carregar recomendações:', error);
+        recomendacoesDiv.innerHTML = `
+            <div class="sem-recomendacoes">
+                <div class="emoji">⚠️</div>
+                <h3>Erro ao carregar recomendações</h3>
+                <p>Não foi possível buscar recomendações no momento.</p>
+                <button onclick="carregarRecomendacoes()" style="margin-top: 15px; width: auto; padding: 8px 20px;">Tentar novamente</button>
+            </div>
+        `;
+    }
+}
+
+// Função para rolar até o filme e destacar
+function scrollParaFilme(filmeId) {
+    // Procurar o card do filme na página
+    const filmeCard = document.querySelector(`.filme-card button[onclick*="${filmeId}"]`);
+    if (filmeCard) {
+        // Rolar até o filme
+        filmeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Destacar o card
+        const card = filmeCard.closest('.filme-card');
+        if (card) {
+            card.style.transition = 'all 0.3s';
+            card.style.boxShadow = '0 0 0 3px #667eea, 0 4px 10px rgba(0,0,0,0.1)';
+            setTimeout(() => {
+                card.style.boxShadow = '';
+            }, 2000);
+        }
+    } else {
+        alert('💡 Este filme está disponível no catálogo acima! Role a página para encontrar.');
+    }
+}
+
 async function carregarDashboard() {
     if (!verificarAutenticacao()) return;
     
@@ -115,6 +215,7 @@ async function carregarDashboard() {
     
     await carregarFilmes();
     await carregarMinhasAvaliacoes();
+    await carregarRecomendacoes();
 }
 
 async function carregarFilmes() {

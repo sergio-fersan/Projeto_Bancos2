@@ -413,6 +413,144 @@ app.get('/api/estatisticas', async (req, res) => {
 });
 
 // ============================================
+// ROTA DE RECOMENDAÇÕES BASEADAS EM USUÁRIOS SIMILARES (CORRIGIDA)
+// ============================================
+
+app.get('/api/recomendacoes/similares/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const session = neo4jDriver.session();
+    
+    try {
+        // Buscar avaliações do usuário
+        const userRatings = await session.run(
+            `MATCH (u:Usuario {id: $userId})-[r:AVALIOU]->(f:Filme)
+             WHERE f.titulo IS NOT NULL AND f.titulo <> ''
+             RETURN f.id AS filmeId, r.nota AS nota, r.recomendado AS recomendado, f.titulo AS titulo`,
+            { userId: userId.toString() }
+        );
+        
+        if (userRatings.records.length === 0) {
+            return res.json({ 
+                message: "Avalie alguns filmes para receber recomendações!",
+                recomendacoes: [] 
+            });
+        }
+        
+        // Buscar recomendações baseadas em usuários similares
+        const result = await session.run(
+            `MATCH (u:Usuario {id: $userId})-[r1:AVALIOU]->(f1:Filme)
+             WHERE f1.titulo IS NOT NULL AND f1.titulo <> ''
+             MATCH (outro:Usuario)-[r2:AVALIOU]->(f1:Filme)
+             WHERE outro.id <> $userId 
+               AND abs(r1.nota - r2.nota) <= 2
+             MATCH (outro)-[r3:AVALIOU]->(f2:Filme)
+             WHERE r3.recomendado = true
+               AND f2.titulo IS NOT NULL 
+               AND f2.titulo <> ''
+               AND NOT EXISTS((u)-[:AVALIOU]->(f2))
+             RETURN DISTINCT f2.id AS filmeId, 
+                    f2.titulo AS titulo,
+                    COUNT(*) AS peso,
+                    AVG(r3.nota) AS mediaNota
+             ORDER BY peso DESC, mediaNota DESC
+             LIMIT 6`,
+            { userId: userId.toString() }
+        );
+        
+        if (result.records.length === 0) {
+            // Fallback: recomendar filmes mais bem avaliados no geral
+            const fallback = await session.run(
+                `MATCH (f:Filme)<-[r:AVALIOU]-()
+                 WHERE r.recomendado = true
+                   AND f.titulo IS NOT NULL 
+                   AND f.titulo <> ''
+                   AND NOT EXISTS((:Usuario {id: $userId})-[:AVALIOU]->(f))
+                 RETURN DISTINCT f.id AS filmeId, 
+                        f.titulo AS titulo,
+                        AVG(r.nota) AS mediaNota,
+                        COUNT(*) AS totalAvaliacoes
+                 ORDER BY mediaNota DESC, totalAvaliacoes DESC
+                 LIMIT 6`,
+                { userId: userId.toString() }
+            );
+            
+            const recomendacoes = fallback.records
+                .filter(record => record.get('titulo') && record.get('titulo') !== 'null')
+                .map(record => ({
+                    filmeId: record.get('filmeId'),
+                    titulo: record.get('titulo'),
+                    mediaNota: Math.round(record.get('mediaNota') * 10) / 10,
+                    motivo: "🔥 Mais recomendado do catálogo"
+                }));
+            
+            return res.json({ 
+                recomendacoes,
+                tipo: "popular"
+            });
+        }
+        
+        const recomendacoes = [];
+        
+        for (const record of result.records) {
+            const filmeId = record.get('filmeId');
+            const titulo = record.get('titulo');
+            
+            // Verificar se o título é válido
+            if (!titulo || titulo === 'null' || titulo === 'undefined') {
+                console.log(`Pulando filme com título inválido: ${filmeId}`);
+                continue;
+            }
+            
+            const peso = record.get('peso').toNumber();
+            const mediaNota = Math.round(record.get('mediaNota') * 10) / 10;
+            
+            // Buscar um exemplo de usuário similar que recomendou este filme
+            const exemplo = await session.run(
+                `MATCH (outro:Usuario)-[r:AVALIOU]->(f:Filme {id: $filmeId})
+                 WHERE r.recomendado = true
+                   AND f.titulo IS NOT NULL
+                 MATCH (u:Usuario {id: $userId})-[r2:AVALIOU]->(f2:Filme)
+                 WHERE EXISTS((outro)-[:AVALIOU]->(f2))
+                   AND abs(r2.nota - r3.nota) <= 2
+                 RETURN outro.nome AS nome
+                 LIMIT 1`,
+                { 
+                    filmeId: filmeId.toString(),
+                    userId: userId.toString()
+                }
+            );
+            
+            let motivo = `👍 Recomendado por ${peso} usuário(s) similares`;
+            if (exemplo.records.length > 0) {
+                const nomeUsuario = exemplo.records[0].get('nome');
+                if (nomeUsuario && nomeUsuario !== 'null') {
+                    motivo = `👥 ${nomeUsuario} e outros ${peso - 1} usuários similares recomendam`;
+                }
+            }
+            
+            recomendacoes.push({
+                filmeId,
+                titulo,
+                mediaNota,
+                motivo,
+                peso
+            });
+        }
+        
+        res.json({ 
+            recomendacoes: recomendacoes.slice(0, 6),
+            tipo: recomendacoes.length > 0 ? "personalizado" : "popular"
+        });
+        
+    } catch (error) {
+        console.error('Erro ao buscar recomendações:', error);
+        res.status(500).json({ error: error.message, recomendacoes: [] });
+    } finally {
+        await session.close();
+    }
+});
+
+// ============================================
 // INICIALIZAÇÃO
 // ============================================
 async function start() {

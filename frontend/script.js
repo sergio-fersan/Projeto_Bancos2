@@ -229,7 +229,6 @@ async function carregarMinhasAvaliacoes() {
                 <p><strong>Nota:</strong> ${av.nota}/10</p>
                 <p><strong>Comentário:</strong> ${av.comentario || 'Sem comentário'}</p>
                 <p><strong>Recomendo:</strong> ${av.recomendado ? '✅ Sim' : '❌ Não'}</p>
-                <small>${new Date(av.data).toLocaleDateString('pt-BR')}</small>
             </div>
         `).join('');
     } catch (error) {

@@ -200,7 +200,6 @@ app.post('/api/avaliacoes', async (req, res) => {
                  SET r.nota = $nota,
                      r.comentario = $comentario,
                      r.recomendado = $recomendado,
-                     r.data = datetime(),
                      r.atualizado = true
                  RETURN r`,
                 {
@@ -221,7 +220,6 @@ app.post('/api/avaliacoes', async (req, res) => {
                      nota: $nota,
                      comentario: $comentario,
                      recomendado: $recomendado,
-                     data: datetime(),
                      atualizado: false
                  }]->(f)`,
                 {
@@ -264,7 +262,6 @@ app.get('/api/minhas-avaliacoes/:userId', async (req, res) => {
       nota: r.get('nota'),
       comentario: r.get('comentario'),
       recomendado: r.get('recomendado'),
-      data: r.get('data')
     })));
   } catch (error) {
     console.error('Erro:', error.message);

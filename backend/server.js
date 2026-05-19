@@ -1,16 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
-const { MongoClient, ObjectId } = require('mongodb'); // ← ADICIONAR ObjectId AQUI!
+const { MongoClient, ObjectId } = require('mongodb');
 const neo4j = require('neo4j-driver');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ============================================
-// SQLITE - Usuários (RDB)
-// ============================================
+
+// SQLITE - Usuários
 const db = new sqlite3.Database('./database.db');
 
 // Criar tabela de usuários
@@ -24,7 +23,7 @@ db.run(`
   )
 `);
 
-// Inserir usuário de exemplo se não existir
+
 db.get("SELECT COUNT(*) as total FROM clientes", (err, row) => {
   if (!err && row.total === 0) {
     db.run(
@@ -35,9 +34,7 @@ db.get("SELECT COUNT(*) as total FROM clientes", (err, row) => {
   }
 });
 
-// ============================================
 // ROTA DE LOGIN
-// ============================================
 app.post('/api/login', (req, res) => {
   const { email, senha } = req.body;
   
@@ -63,9 +60,7 @@ app.post('/api/login', (req, res) => {
   );
 });
 
-// ============================================
 // ROTA DE CADASTRO
-// ============================================
 app.post('/api/cadastro', (req, res) => {
   const { nome, email, senha } = req.body;
   
@@ -89,9 +84,7 @@ app.post('/api/cadastro', (req, res) => {
   );
 });
 
-// ============================================
 // MONGODB - Filmes
-// ============================================
 const mongoClient = new MongoClient('mongodb://localhost:27017');
 let filmesCollection;
 
@@ -140,9 +133,7 @@ app.get('/api/filmes', async (req, res) => {
   }
 });
 
-// ============================================
 // NEO4J - Avaliações
-// ============================================
 const neo4jDriver = neo4j.driver(
   'bolt://localhost:7687',
   neo4j.auth.basic('neo4j', 'admin123')
@@ -157,8 +148,7 @@ async function initNeo4j() {
   }
 }
 
-// Criar avaliação (CORRIGIDO)
-// Criar ou atualizar avaliação (UPSERT)
+// Criar ou atualizar avaliação
 app.post('/api/avaliacoes', async (req, res) => {
     const { userId, filmeId, nota, comentario, recomendado } = req.body;
     const session = neo4jDriver.session();
@@ -194,7 +184,7 @@ app.post('/api/avaliacoes', async (req, res) => {
         );
         
         if (checkResult.records.length > 0) {
-            // Já existe avaliação - fazer UPDATE
+            // update
             await session.run(
                 `MATCH (u:Usuario {id: $userId})-[r:AVALIOU]->(f:Filme {id: $filmeId})
                  SET r.nota = $nota,
@@ -212,7 +202,7 @@ app.post('/api/avaliacoes', async (req, res) => {
             );
             res.json({ success: true, updated: true });
         } else {
-            // Não existe - criar nova avaliação
+            // criar nova avaliação
             await session.run(
                 `MERGE (u:Usuario {id: $userId, nome: $nome})
                  MERGE (f:Filme {id: $filmeId, titulo: $titulo})
@@ -242,7 +232,7 @@ app.post('/api/avaliacoes', async (req, res) => {
     }
 });
 
-// Buscar avaliações do usuário logado
+// Buscar avaliações do usuário
 app.get('/api/minhas-avaliacoes/:userId', async (req, res) => {
   const { userId } = req.params;
   const session = neo4jDriver.session();
@@ -282,9 +272,7 @@ app.get('/api/clientes', (req, res) => {
   });
 });
 
-// ============================================
 // ROTAS ADMIN - CLIENTES (SQLite)
-// ============================================
 
 // Atualizar cliente
 app.put('/api/clientes/:id', (req, res) => {
@@ -306,7 +294,7 @@ app.put('/api/clientes/:id', (req, res) => {
     );
 });
 
-// Deletar cliente (e suas avaliações no Neo4j)
+// Deletar cliente e avaliações
 app.delete('/api/clientes/:id', async (req, res) => {
     const { id } = req.params;
     const session = neo4jDriver.session();
@@ -335,9 +323,7 @@ app.delete('/api/clientes/:id', async (req, res) => {
     }
 });
 
-// ============================================
 // ROTAS ADMIN - FILMES (MongoDB)
-// ============================================
 
 // Atualizar filme
 app.put('/api/filmes/:id', async (req, res) => {
@@ -360,7 +346,7 @@ app.put('/api/filmes/:id', async (req, res) => {
     }
 });
 
-// Deletar filme (e suas avaliações no Neo4j)
+// Deletar filme
 app.delete('/api/filmes/:id', async (req, res) => {
     const { id } = req.params;
     const session = neo4jDriver.session();
@@ -387,9 +373,7 @@ app.delete('/api/filmes/:id', async (req, res) => {
     }
 });
 
-// ============================================
 // ROTA PARA ESTATÍSTICAS (Admin)
-// ============================================
 
 app.get('/api/estatisticas', async (req, res) => {
     const session = neo4jDriver.session();
@@ -412,9 +396,7 @@ app.get('/api/estatisticas', async (req, res) => {
     }
 });
 
-// ============================================
-// ROTA DE RECOMENDAÇÕES BASEADAS EM USUÁRIOS SIMILARES (CORRIGIDA)
-// ============================================
+// ROTA DE RECOMENDAÇÕES BASEADAS EM USUÁRIOS SIMILARES
 
 app.get('/api/recomendacoes/similares/:userId', async (req, res) => {
     const { userId } = req.params;
@@ -458,7 +440,6 @@ app.get('/api/recomendacoes/similares/:userId', async (req, res) => {
         );
         
         if (result.records.length === 0) {
-            // Fallback: recomendar filmes mais bem avaliados no geral
             const fallback = await session.run(
                 `MATCH (f:Filme)<-[r:AVALIOU]-()
                  WHERE r.recomendado = true
@@ -495,36 +476,32 @@ app.get('/api/recomendacoes/similares/:userId', async (req, res) => {
             const filmeId = record.get('filmeId');
             const titulo = record.get('titulo');
             
-            // Verificar se o título é válido
             if (!titulo || titulo === 'null' || titulo === 'undefined') {
-                console.log(`Pulando filme com título inválido: ${filmeId}`);
                 continue;
             }
             
             const peso = record.get('peso').toNumber();
             const mediaNota = Math.round(record.get('mediaNota') * 10) / 10;
             
-            // Buscar um exemplo de usuário similar que recomendou este filme
+            // Buscar um exemplo de usuário similar
             const exemplo = await session.run(
                 `MATCH (outro:Usuario)-[r:AVALIOU]->(f:Filme {id: $filmeId})
                  WHERE r.recomendado = true
-                   AND f.titulo IS NOT NULL
-                 MATCH (u:Usuario {id: $userId})-[r2:AVALIOU]->(f2:Filme)
-                 WHERE EXISTS((outro)-[:AVALIOU]->(f2))
-                   AND abs(r2.nota - r3.nota) <= 2
-                 RETURN outro.nome AS nome
-                 LIMIT 1`,
-                { 
-                    filmeId: filmeId.toString(),
-                    userId: userId.toString()
-                }
+                 WITH outro
+                 LIMIT 1
+                 RETURN outro.nome AS nome`,
+                { filmeId: filmeId.toString() }
             );
             
-            let motivo = `👍 Recomendado por ${peso} usuário(s) similares`;
+            let motivo = `Recomendado por ${peso} usuário(s) similares`;
             if (exemplo.records.length > 0) {
                 const nomeUsuario = exemplo.records[0].get('nome');
                 if (nomeUsuario && nomeUsuario !== 'null') {
+                  if (peso > 1) {
                     motivo = `👥 ${nomeUsuario} e outros ${peso - 1} usuários similares recomendam`;
+                  } else {
+                    motivo = `👥 Usuário ${nomeUsuario} recomenda`;
+                  }
                 }
             }
             
@@ -543,31 +520,26 @@ app.get('/api/recomendacoes/similares/:userId', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Erro ao buscar recomendações:', error);
-        res.status(500).json({ error: error.message, recomendacoes: [] });
+        console.error('Erro detalhado:', error);
+        res.json({ 
+            recomendacoes: [],
+            tipo: "erro",
+            message: "Erro ao gerar recomendações. Tente novamente mais tarde."
+        });
     } finally {
         await session.close();
     }
 });
 
-// ============================================
-// INICIALIZAÇÃO
-// ============================================
+// init
 async function start() {
-  console.log('🚀 Iniciando backend...\n');
-  console.log('✅ SQLite (RDB) rodando');
+  console.log('Iniciando backend...\n');
+  console.log('SQLite rodando');
   await initMongoDB();
   await initNeo4j();
   
   app.listen(3000, () => {
-    console.log('\n✅ Servidor rodando na porta 3000');
-    console.log('📝 Credenciais de teste: demo@email.com / 123456');
-    console.log('\n🎬 Endpoints disponíveis:');
-    console.log('   POST /api/login');
-    console.log('   POST /api/cadastro');
-    console.log('   GET  /api/filmes');
-    console.log('   POST /api/avaliacoes');
-    console.log('   GET  /api/minhas-avaliacoes/:userId\n');
+    console.log('\nServidor rodando na porta 3000');
   });
 }
 

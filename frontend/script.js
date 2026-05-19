@@ -1,10 +1,7 @@
-// Configuração
 const API_URL = 'http://localhost:3000';
 let usuarioAtual = null;
 
-// ============================================
 // FUNÇÕES DE LOGIN/CADASTRO
-// ============================================
 
 async function fazerLogin() {
     const email = document.getElementById('loginEmail').value;
@@ -94,9 +91,7 @@ function mostrarMensagem(elementId, mensagem, tipo) {
     }
 }
 
-// ============================================
 // FUNÇÕES DO DASHBOARD
-// ============================================
 
 function verificarAutenticacao() {
     const usuario = localStorage.getItem('usuario');
@@ -109,9 +104,7 @@ function verificarAutenticacao() {
 }
 
 
-// ============================================
 // RECOMENDAÇÕES PERSONALIZADAS
-// ============================================
 
 async function carregarRecomendacoes() {
     const recomendacoesDiv = document.getElementById('recomendacoesLista');
@@ -135,8 +128,6 @@ async function carregarRecomendacoes() {
                 <div class="sem-recomendacoes">
                     <div class="emoji">🎬</div>
                     <h3>Sem recomendações ainda</h3>
-                    <p>${data.message || 'Avalie mais filmes para receber recomendações personalizadas!'}</p>
-                    <small>💡 Quanto mais você avalia, melhores ficam as recomendações</small>
                 </div>
             `;
             return;
@@ -186,9 +177,8 @@ async function carregarRecomendacoes() {
     }
 }
 
-// Função para rolar até o filme e destacar
+
 function scrollParaFilme(filmeId) {
-    // Procurar o card do filme na página
     const filmeCard = document.querySelector(`.filme-card button[onclick*="${filmeId}"]`);
     if (filmeCard) {
         // Rolar até o filme
@@ -204,7 +194,7 @@ function scrollParaFilme(filmeId) {
             }, 2000);
         }
     } else {
-        alert('💡 Este filme está disponível no catálogo acima! Role a página para encontrar.');
+        alert('Este filme está disponível no catálogo acima. Role a página para encontrar.');
     }
 }
 
@@ -300,10 +290,10 @@ async function avaliarFilme(filmeId, titulo) {
             document.getElementById(`recomendo-${filmeId}`).checked = false;
             await carregarMinhasAvaliacoes();
         } else {
-            alert(`❌ Erro: ${data.error}`);
+            alert(`Erro: ${data.error}`);
         }
     } catch (error) {
-        alert('❌ Erro de conexão com o servidor');
+        alert('Erro de conexão com o servidor');
     }
 }
 
@@ -337,11 +327,7 @@ async function carregarMinhasAvaliacoes() {
     }
 }
 
-// ============================================
 // INICIALIZAÇÃO POR PÁGINA
-// ============================================
-
-// Detectar qual página está carregando e inicializar
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     const page = path.split('/').pop();
@@ -349,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (page === 'dashboard.html') {
         carregarDashboard();
     }
-    // Não faz verificação automática em login.html e cadastro.html
+    
 });
 
 // Exportar funções para o escopo global

@@ -1,8 +1,6 @@
 const API_URL = 'http://localhost:3000';
 
-// ============================================
 // FUNÇÕES DE CLIENTES (SQLite)
-// ============================================
 
 async function adminCarregarClientes() {
     try {
@@ -132,9 +130,7 @@ async function adminDeletarCliente(id) {
     }
 }
 
-// ============================================
 // FUNÇÕES DE FILMES (MongoDB)
-// ============================================
 
 async function adminCarregarFilmes() {
     try {
@@ -196,10 +192,10 @@ async function adminCriarFilme() {
             await adminCarregarFilmes();
             await adminCarregarEstatisticas();
         } else {
-            alert('❌ Erro ao adicionar filme');
+            alert('Erro ao adicionar filme');
         }
     } catch (error) {
-        alert('❌ Erro ao adicionar filme');
+        alert('Erro ao adicionar filme');
     }
 }
 
@@ -241,10 +237,10 @@ async function adminSalvarFilme(id) {
             document.querySelector('.modal').remove();
             await adminCarregarFilmes();
         } else {
-            alert('❌ Erro ao atualizar filme');
+            alert('Erro ao atualizar filme');
         }
     } catch (error) {
-        alert('❌ Erro ao atualizar filme');
+        alert('Erro ao atualizar filme');
     }
 }
 
@@ -268,9 +264,7 @@ async function adminDeletarFilme(id) {
     }
 }
 
-// ============================================
 // ESTATÍSTICAS
-// ============================================
 
 async function adminCarregarEstatisticas() {
     try {
@@ -285,9 +279,7 @@ async function adminCarregarEstatisticas() {
     }
 }
 
-// ============================================
 // INICIALIZAÇÃO
-// ============================================
 
 async function adminInicializar() {
     console.log('👑 Inicializando painel admin...');
@@ -296,7 +288,6 @@ async function adminInicializar() {
     await adminCarregarEstatisticas();
 }
 
-// Iniciar quando a página carregar
 adminInicializar();
 
 // Exportar funções para o escopo global
